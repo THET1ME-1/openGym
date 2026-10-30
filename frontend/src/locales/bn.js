@@ -1351,6 +1351,8 @@ export default {
   'Card added': 'কার্ড যোগ হয়েছে',
   'That\'s not a QR code. Only QR cards can be shown here': 'এটি QR কোড নয়। এখানে শুধু QR কার্ড দেখানো যায়',
   'No QR code found in that image': 'ওই ছবিতে কোনো QR কোড পাওয়া যায়নি',
+  "This kind of code can't be shown here": 'এই ধরনের কোড এখানে দেখানো যায় না',
+  'Barcode': 'বারকোড',
   'Could not read that image': 'ছবিটি পড়া যায়নি',
   'Camera permission is needed to scan. Enable it in Settings.': 'স্ক্যান করতে ক্যামেরার অনুমতি লাগবে। সেটিংসে চালু করুন।',
   'Scanning is not available on this device.': 'এই ডিভাইসে স্ক্যান করা যায় না।',

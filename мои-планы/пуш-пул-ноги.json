@@ -1,0 +1,147 @@
+{
+  "opengym_plan": 1,
+  "exported": "2026-10-30",
+  "name": "Пуш, пул, ноги",
+  "unit": "kg",
+  "week": {
+    "1": [
+      "push"
+    ],
+    "3": [
+      "pull"
+    ],
+    "5": [
+      "legs"
+    ]
+  },
+  "routines": [
+    {
+      "id": "push",
+      "name": "День 1. Пуш",
+      "emoji": "barbell",
+      "ex": [
+        {
+          "id": "0757",
+          "sets": 4,
+          "reps": 10,
+          "weight": 55,
+          "repsMin": 5,
+          "prog": "double"
+        },
+        {
+          "id": "1195",
+          "sets": 3,
+          "reps": 15,
+          "weight": 55,
+          "repsMin": 10,
+          "prog": "double"
+        },
+        {
+          "id": "1030",
+          "sets": 5,
+          "reps": 15,
+          "weight": 55,
+          "repsMin": 7,
+          "prog": "double"
+        },
+        {
+          "id": "0192",
+          "sets": 3,
+          "reps": 12,
+          "weight": 2.5
+        },
+        {
+          "id": "0241",
+          "sets": 5,
+          "reps": 10,
+          "weight": 22.5
+        }
+      ]
+    },
+    {
+      "id": "pull",
+      "name": "День 2. Пул",
+      "emoji": "pullup",
+      "ex": [
+        {
+          "id": "0239",
+          "sets": 3,
+          "reps": 13,
+          "weight": 50,
+          "repsMin": 12,
+          "prog": "double"
+        },
+        {
+          "id": "2291",
+          "sets": 3,
+          "reps": 8,
+          "weight": 35
+        },
+        {
+          "id": "1350",
+          "sets": 3,
+          "reps": 10,
+          "weight": 25
+        },
+        {
+          "id": "0602",
+          "sets": 3,
+          "reps": 10,
+          "weight": 25
+        },
+        {
+          "id": "0031",
+          "sets": 3,
+          "reps": 10,
+          "weight": 30,
+          "repsMin": 7,
+          "prog": "double"
+        }
+      ]
+    },
+    {
+      "id": "legs",
+      "name": "День 3. Ноги",
+      "emoji": "legs",
+      "ex": [
+        {
+          "id": "0743",
+          "sets": 3,
+          "reps": 10,
+          "weight": 50
+        },
+        {
+          "id": "0599",
+          "sets": 5,
+          "reps": 15,
+          "weight": 45,
+          "repsMin": 10,
+          "prog": "double"
+        },
+        {
+          "id": "0740",
+          "sets": 3,
+          "reps": 10,
+          "weight": 100
+        },
+        {
+          "id": "0585",
+          "sets": 5,
+          "reps": 20,
+          "weight": 45,
+          "repsMin": 10,
+          "prog": "double"
+        },
+        {
+          "id": "1383",
+          "sets": 3,
+          "reps": 20,
+          "weight": 25,
+          "repsMin": 15,
+          "prog": "double"
+        }
+      ]
+    }
+  ],
+  "customEx": []
+}

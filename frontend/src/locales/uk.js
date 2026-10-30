@@ -1078,6 +1078,8 @@ export default {
   'Card added': 'Картку додано',
   'That\'s not a QR code. Only QR cards can be shown here': 'Це не QR-код. Тут можна показувати лише QR-картки',
   'No QR code found in that image': 'На зображенні не знайдено QR-код',
+  "This kind of code can't be shown here": 'Такий вид коду тут показати не можна',
+  'Barcode': 'Штрихкод',
   'Could not read that image': 'Не вдалося прочитати зображення',
   'Camera permission is needed to scan. Enable it in Settings.': 'Для сканування потрібен доступ до камери. Увімкни його в налаштуваннях.',
   'Scanning is not available on this device.': 'Сканування недоступне на цьому пристрої.',

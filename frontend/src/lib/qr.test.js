@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { normalizeFmt, canRenderFmt } from './qr.js'
+import { normalizeFmt, canRenderFmt, barcodeSvg } from './qr.js'
 
 // The QR helpers decide which scanned/typed codes the check-in feature will store: it can read
 // many symbologies but only redraw QR, so canRenderFmt is the gate, and normalizeFmt is what
@@ -35,11 +35,9 @@ describe('canRenderFmt', () => {
     expect(canRenderFmt('qr')).toBe(true)
   })
 
-  it('rejects 1D and other 2D symbologies we cannot faithfully redraw', () => {
-    // These are readable by the scanner but lean-qr can't reproduce them, so a card in one of
-    // these formats must never be stored — it would display as the wrong bars at the turnstile.
-    for (const fmt of ['EAN_13', 'EAN_8', 'CODE_128', 'CODE_39', 'ITF', 'UPC_A', 'PDF_417', 'AZTEC', 'DATA_MATRIX']) {
-      expect(canRenderFmt(fmt)).toBe(false)
+  it('accepts the barcodes a membership card carries, drawn by bwip-js', () => {
+    for (const fmt of ['EAN_13', 'EAN_8', 'CODE_128', 'CODE_39', 'CODE_93', 'CODABAR', 'ITF', 'UPC_A', 'UPC_E', 'PDF_417', 'AZTEC', 'DATA_MATRIX']) {
+      expect(canRenderFmt(fmt)).toBe(true)
     }
   })
 
@@ -47,5 +45,29 @@ describe('canRenderFmt', () => {
     expect(canRenderFmt('')).toBe(false)
     expect(canRenderFmt(null)).toBe(false)
     expect(canRenderFmt('something-else')).toBe(false)
+    expect(canRenderFmt('UNKNOWN')).toBe(false)
+  })
+})
+
+describe('barcodeSvg', () => {
+  it('draws an EAN-13 card number as bars', async () => {
+    expect(await barcodeSvg('5901234123457', 'EAN_13')).toMatch(/^<svg[\s\S]*<\/svg>\s*$/)
+  })
+
+  it('draws a Code 128 card with letters in it', async () => {
+    expect(await barcodeSvg('MEMBER-9931', 'CODE_128')).toContain('<svg')
+  })
+
+  it('draws a Codabar number that came without its start and stop letters', async () => {
+    expect(await barcodeSvg('1234567', 'CODABAR')).toContain('<svg')
+  })
+
+  it('gives null for a value the format cannot hold, never wrong bars', async () => {
+    expect(await barcodeSvg('ABC', 'EAN_13')).toBeNull()
+    expect(await barcodeSvg('12345678901234567', 'EAN_13')).toBeNull()
+  })
+
+  it('gives null for QR, which lean-qr draws', async () => {
+    expect(await barcodeSvg('X', 'QR_CODE')).toBeNull()
   })
 })

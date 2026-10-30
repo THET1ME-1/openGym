@@ -2147,6 +2147,9 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
    quiet-zone padding is baked in by the renderer; the plate underneath just frames it. */
 .ci-qr-plate{background:#fff;border-radius:var(--r-lg);padding:16px}
 .qr-canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;transition:opacity var(--fast)}
+/* Fork change: a barcode card, an SVG from bwip-js stretched to the box width */
+.barcode-svg{transition:opacity var(--fast)}
+.barcode-svg svg{display:block;width:100%;height:auto}
 /* the trailing add card — a big + on a dashed outline, same footprint as a real card */
 .ci-add{
   scroll-snap-align:center;flex:0 0 100%;box-sizing:border-box;

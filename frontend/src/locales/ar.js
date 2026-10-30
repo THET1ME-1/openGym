@@ -1129,6 +1129,8 @@ export default {
   'Card added': 'تمت إضافة البطاقة',
   'That\'s not a QR code. Only QR cards can be shown here': 'هذه ليست رمز QR. يمكن عرض بطاقات QR فقط هنا',
   'No QR code found in that image': 'لم يُعثر على رمز QR في تلك الصورة',
+  "This kind of code can't be shown here": 'لا يمكن عرض هذا النوع من الرموز هنا',
+  'Barcode': 'رمز شريطي',
   'Could not read that image': 'تعذرت قراءة تلك الصورة',
   'Camera permission is needed to scan. Enable it in Settings.': 'يلزم إذن الكاميرا للمسح. فعّله في الإعدادات.',
   'Scanning is not available on this device.': 'المسح غير متاح على هذا الجهاز.',

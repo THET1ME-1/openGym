@@ -1292,6 +1292,8 @@ export default {
   'Card added': '카드가 추가되었습니다',
   'That\'s not a QR code. Only QR cards can be shown here': 'QR 코드가 아닙니다. 여기서는 QR 카드만 표시할 수 있습니다',
   'No QR code found in that image': '이미지에서 QR 코드를 찾을 수 없습니다',
+  "This kind of code can't be shown here": '이 종류의 코드는 여기에 표시할 수 없습니다',
+  'Barcode': '바코드',
   'Could not read that image': '이미지를 읽을 수 없습니다',
   'Camera permission is needed to scan. Enable it in Settings.': '스캔하려면 카메라 권한이 필요합니다. 설정에서 켜세요.',
   'Scanning is not available on this device.': '이 기기에서는 스캔을 사용할 수 없습니다.',

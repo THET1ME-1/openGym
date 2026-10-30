@@ -1313,6 +1313,8 @@ export default {
   'Card added': 'Kortet tillagt',
   'That\'s not a QR code. Only QR cards can be shown here': 'Det är inte en QR-kod. Bara QR-kort kan visas här',
   'No QR code found in that image': 'Ingen QR-kod hittades i bilden',
+  "This kind of code can't be shown here": 'Den här typen av kod kan inte visas här',
+  'Barcode': 'Streckkod',
   'Could not read that image': 'Kunde inte läsa bilden',
   'Camera permission is needed to scan. Enable it in Settings.': 'Kamerabehörighet behövs för att skanna. Aktivera den i Inställningar.',
   'Scanning is not available on this device.': 'Skanning är inte tillgängligt på den här enheten.',

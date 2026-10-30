@@ -992,6 +992,8 @@ export default {
   'Card added': 'เพิ่มบัตรแล้ว',
   'That\'s not a QR code. Only QR cards can be shown here': 'นี่ไม่ใช่คิวอาร์โค้ด ที่นี่แสดงได้เฉพาะบัตรแบบคิวอาร์โค้ดเท่านั้น',
   'No QR code found in that image': 'ไม่พบคิวอาร์โค้ดในรูปภาพนั้น',
+  "This kind of code can't be shown here": 'ไม่สามารถแสดงโค้ดประเภทนี้ที่นี่ได้',
+  'Barcode': 'บาร์โค้ด',
   'Could not read that image': 'ไม่สามารถอ่านรูปภาพนั้นได้',
   'Camera permission is needed to scan. Enable it in Settings.': 'ต้องมีสิทธิ์กล้องเพื่อสแกน เปิดใช้งานในการตั้งค่า',
   'Scanning is not available on this device.': 'อุปกรณ์นี้ไม่รองรับการสแกน',

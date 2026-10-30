@@ -1283,6 +1283,8 @@ export default {
   'Card added': '卡片已新增',
   'That\'s not a QR code. Only QR cards can be shown here': '這不是 QR Code。此處只能顯示 QR Code 卡片',
   'No QR code found in that image': '在該圖片中未偵測到 QR Code',
+  "This kind of code can't be shown here": '這種代碼無法在此顯示',
+  'Barcode': '條碼',
   'Could not read that image': '無法讀取該圖片',
   'Camera permission is needed to scan. Enable it in Settings.': '需要相機權限才能進行掃描。請至系統設定中開啟權限。',
   'Scanning is not available on this device.': '此裝置不支援掃描功能。',

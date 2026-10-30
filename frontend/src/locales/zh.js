@@ -1292,6 +1292,8 @@ export default {
   'Card added': '已添加卡片',
   'That\'s not a QR code. Only QR cards can be shown here': '这不是二维码。此处只能显示二维码卡片',
   'No QR code found in that image': '在该图片中未找到二维码',
+  "This kind of code can't be shown here": '这种代码无法在此显示',
+  'Barcode': '条形码',
   'Could not read that image': '无法读取该图片',
   'Camera permission is needed to scan. Enable it in Settings.': '扫描需要相机权限。请在设置中开启。',
   'Scanning is not available on this device.': '此设备不支持扫描。',

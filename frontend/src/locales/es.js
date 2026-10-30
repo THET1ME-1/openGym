@@ -1292,6 +1292,8 @@ export default {
   'Card added': 'Tarjeta añadida',
   'That\'s not a QR code. Only QR cards can be shown here': 'Eso no es un código QR. Aquí solo se pueden mostrar tarjetas QR',
   'No QR code found in that image': 'No se encontró ningún código QR en esa imagen',
+  "This kind of code can't be shown here": 'Este tipo de código no se puede mostrar aquí',
+  'Barcode': 'Código de barras',
   'Could not read that image': 'No se pudo leer esa imagen',
   'Camera permission is needed to scan. Enable it in Settings.': 'Se necesita permiso de cámara para escanear. Actívalo en Ajustes.',
   'Scanning is not available on this device.': 'El escaneo no está disponible en este dispositivo.',

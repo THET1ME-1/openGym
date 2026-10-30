@@ -7,10 +7,10 @@
 // lean-qr (MIT, see NOTICE.md) is loaded with a dynamic import so its ~4kB only loads when a
 // card is actually shown, on every platform — the PWA renders the same code as the app.
 //
-// Scope: lean-qr generates QR codes only. A gym card is virtually always a QR code, and the
-// capture flow (lib/scan.js) refuses any symbology we cannot faithfully reproduce, so a stored
-// card is guaranteed renderable here — canRenderFmt() is the single source of that truth, shared
-// by both sides.
+// Scope: lean-qr generates QR codes only; barcodes (EAN, Code 128 and the rest) go through
+// bwip-js below. The capture flow refuses any symbology we cannot faithfully reproduce, so a
+// stored card is guaranteed renderable here — canRenderFmt() is the single source of that truth,
+// shared by both sides.
 
 let _leanqr = null
 
@@ -20,12 +20,56 @@ async function loadLeanQr() {
   return _leanqr
 }
 
-// The symbologies we can both read (mlkit) AND redraw (lean-qr). Stored `fmt` is a lower-cased
-// BarcodeFormat. Only QR qualifies: reproducing an EAN/Code128/etc. would need a 1D renderer we
-// deliberately did not add, and a code we can't redraw faithfully is worse than not storing it —
-// it would look scannable but carry the wrong bars.
+// Fork change: membership cards with a barcode (EAN, Code 128 and the rest) are drawn by bwip-js
+// (MIT), loaded the same lazy way. The key is our stored `fmt`, the value bwip-js's own name.
+const BWIP_ID = {
+  ean13: 'ean13', ean8: 'ean8', upca: 'upca', upce: 'upce',
+  code128: 'code128', code39: 'code39', code93: 'code93',
+  codabar: 'rationalizedCodabar', itf: 'interleaved2of5',
+  pdf417: 'pdf417', aztec: 'azteccode', datamatrix: 'datamatrix',
+}
+// Barcodes drawn as one line of bars: wide and low on screen, unlike the square codes
+const LINEAR = new Set(['ean13', 'ean8', 'upca', 'upce', 'code128', 'code39', 'code93', 'codabar', 'itf'])
+
+let _bwip = null
+
+async function loadBwip() {
+  if (!_bwip) _bwip = await import('bwip-js')
+  return _bwip
+}
+
+// The symbologies we can both read (mlkit) AND redraw: QR by lean-qr, the rest by bwip-js.
+// Stored `fmt` is a lower-cased BarcodeFormat; an unknown one is still refused, since a code we
+// can't redraw faithfully would look scannable but carry the wrong bars.
 export function canRenderFmt(fmt) {
-  return normalizeFmt(fmt) === 'qrcode'
+  const token = normalizeFmt(fmt)
+  return token === 'qrcode' || token in BWIP_ID
+}
+
+// A non-QR card as an SVG string, black on white, or null when the value does not fit the
+// format (bwip-js checks digits and check sums and refuses rather than drawing wrong bars).
+export async function barcodeSvg(value, fmt) {
+  const token = normalizeFmt(fmt)
+  if (!value || !(token in BWIP_ID)) return null
+  // A scanned Codabar number may come without its start and stop letters, which bwip-js needs
+  let text = String(value)
+  if (token === 'codabar' && !/^[A-D].*[A-D]$/i.test(text)) text = 'A' + text + 'A'
+  const { toSVG } = await loadBwip()
+  try {
+    return toSVG({
+      bcid: BWIP_ID[token],
+      text,
+      scale: 3,
+      // Bar height in millimetres, for the one-line barcodes only
+      ...(LINEAR.has(token) ? { height: 18 } : {}),
+      paddingwidth: 6,
+      paddingheight: 6,
+      barcolor: '000000',
+      backgroundcolor: 'ffffff',
+    })
+  } catch {
+    return null
+  }
 }
 
 // mlkit reports BarcodeFormat as e.g. 'QR_CODE' | 'QrCode'; older callers may pass 'qr'. Fold

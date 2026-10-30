@@ -1292,6 +1292,8 @@ export default {
   'Card added': 'Kart eklendi',
   'That\'s not a QR code. Only QR cards can be shown here': 'Bu bir QR kod değil. Burada yalnızca QR kartlar gösterilebilir',
   'No QR code found in that image': 'Bu görüntüde QR kod bulunamadı',
+  "This kind of code can't be shown here": 'Bu tür bir kod burada gösterilemez',
+  'Barcode': 'Barkod',
   'Could not read that image': 'Bu görüntü okunamadı',
   'Camera permission is needed to scan. Enable it in Settings.': 'Taramak için kamera izni gerekir. Ayarlar’dan etkinleştir.',
   'Scanning is not available on this device.': 'Tarama bu cihazda kullanılamıyor.',

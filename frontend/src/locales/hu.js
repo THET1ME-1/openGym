@@ -984,6 +984,8 @@ export default {
   'Card added': 'Kártya hozzáadva',
   'That\'s not a QR code. Only QR cards can be shown here': 'Ez nem QR-kód. Itt csak QR-kártyák jeleníthetők meg',
   'No QR code found in that image': 'Nem található QR-kód a képen',
+  "This kind of code can't be shown here": 'Ez a kódtípus itt nem jeleníthető meg',
+  'Barcode': 'Vonalkód',
   'Could not read that image': 'A kép nem olvasható be',
   'Camera permission is needed to scan. Enable it in Settings.': 'A beolvasáshoz kameraengedély szükséges. Engedélyezd a Beállításokban.',
   'Scanning is not available on this device.': 'A beolvasás nem érhető el ezen az eszközön.',

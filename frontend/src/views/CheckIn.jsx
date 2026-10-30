@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { uid } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
-import { canRenderFmt } from '../lib/qr.js'
+import { canRenderFmt, normalizeFmt } from '../lib/qr.js'
 import { scanCode, importCodeFromImage } from '../lib/scan.js'
 import { MOBILE } from '../lib/mobile.js'
 import Icon from '../components/Icon.jsx'
@@ -27,7 +27,7 @@ export function moveGymCard(cards, from, to) {
 }
 
 // Gym check-in (reached from the Home "Check in" card; app and PWA alike). Shows each saved
-// membership code as a QR the turnstile can read, swiped through horizontally, with a trailing
+// membership code as a QR or barcode the turnstile can read, swiped through horizontally, with a trailing
 // "+" to add another. We only ever store the code's value + symbology; the QR is regenerated from
 // it here every time (see lib/qr.js), so nothing sensitive is kept as an image.
 //
@@ -126,7 +126,7 @@ function CardFace({ card, index, count }) {
       <div className="ci-label">{card.label}</div>
       <button className="iconbtn ci-card-btn" style={{ color: 'var(--red)' }} onClick={remove} aria-label={t('Remove')}><Icon name="trash" /></button>
     </div>
-    <div className="ci-qr-plate"><QrCanvas value={card.value} size={230} /></div>
+    <div className="ci-qr-plate"><QrCanvas value={card.value} fmt={card.fmt} size={230} /></div>
     <div className="ci-value">{card.value}</div>
     {count > 1 && <div className="ci-reorder">
       <button className="iconbtn ci-card-btn" onClick={() => move(index - 1)} disabled={index === 0} aria-label={t('Move left')}><Icon name="chevronLeft" /></button>
@@ -156,6 +156,8 @@ function CardSheet({ close, card }) {
   const editing = !!card
   const [label, setLabel] = useState(card?.label || '')
   const [value, setValue] = useState(card?.value || '')
+  // Cards saved before barcodes were allowed carry no format: they are QR codes
+  const [fmt, setFmt] = useState(normalizeFmt(card?.fmt) || 'qrcode')
   const [busy, setBusy] = useState(false)
   const fileRef = useRef(null)
   const toast = useUI(s => s.toast)
@@ -178,18 +180,26 @@ function CardSheet({ close, card }) {
         if (!c) return
         c.label = label.trim() || t('Gym card')
         c.value = trimmed
+        c.fmt = fmt
       })
       toast(t('Card updated'))
     } else {
       update(s => {
         if (!Array.isArray(s.gymCards)) s.gymCards = []
         const id = uid()
-        s.gymCards.push({ id, label: label.trim() || t('Gym card'), value: trimmed, fmt: 'qrcode' })
+        s.gymCards.push({ id, label: label.trim() || t('Gym card'), value: trimmed, fmt })
         s.lastGymCardId = id
       })
       toast(t('Card added'))
     }
     close()
+  }
+
+  // A captured code goes into the form with its format, or is refused when we cannot redraw it
+  const takeCode = code => {
+    if (!canRenderFmt(code.fmt)) { toast(t("This kind of code can't be shown here")); return }
+    setValue(code.value)
+    setFmt(normalizeFmt(code.fmt))
   }
 
   // Camera scan: in the app, hands off to the native scanner; in a browser, opens our own camera
@@ -201,8 +211,7 @@ function CardSheet({ close, card }) {
         onCancel={closeCam}
         onFound={code => {
           closeCam()
-          if (!canRenderFmt(code.fmt)) { toast(t("That's not a QR code. Only QR cards can be shown here")); return }
-          setValue(code.value)
+          takeCode(code)
         }} />)
       return
     }
@@ -210,8 +219,7 @@ function CardSheet({ close, card }) {
     try {
       const code = await scanCode()
       if (!code) return                       // user backed out
-      if (!canRenderFmt(code.fmt)) { toast(t("That's not a QR code. Only QR cards can be shown here")); return }
-      setValue(code.value)
+      takeCode(code)
     } catch (e) {
       toast(scanErrorMessage(e))
     } finally { setBusy(false) }
@@ -225,8 +233,7 @@ function CardSheet({ close, card }) {
     try {
       const code = await importCodeFromImage(file)
       if (!code) { toast(t('No QR code found in that image')); return }
-      if (!canRenderFmt(code.fmt)) { toast(t("That's not a QR code. Only QR cards can be shown here")); return }
-      setValue(code.value)
+      takeCode(code)
     } catch (e) {
       toast(t('Could not read that image'))
     } finally { setBusy(false) }
@@ -244,7 +251,7 @@ function CardSheet({ close, card }) {
     <label className="sect-t">{t('Label')}</label>
     <TextField value={label} onChange={e => setLabel(e.target.value)} placeholder={t('e.g. FitZone downtown')} style={{ marginBottom: 16 }} />
 
-    {value.trim() && <div className="ci-qr-plate" style={{ alignSelf: 'center', marginBottom: 16 }}><QrCanvas value={value.trim()} size={150} /></div>}
+    {value.trim() && <div className="ci-qr-plate" style={{ alignSelf: 'center', marginBottom: 16 }}><QrCanvas value={value.trim()} fmt={fmt} size={150} /></div>}
 
     <Button variant="primary" onClick={commit} disabled={busy || !value.trim()}>{editing ? t('Save card') : t('Save card')}</Button>
 
