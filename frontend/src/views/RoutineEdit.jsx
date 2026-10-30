@@ -4,7 +4,8 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { exOr } from '../lib/exercises.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
-import { uid, exerciseNameText } from '../lib/format.js'
+import { uid, exerciseNameText, todayISO } from '../lib/format.js'
+import { placeCopyNextTo } from '../lib/programs.js'
 import { t, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import { supersetUnits, moveRoutineEntry, cleanupSg, exLine, pickedExerciseConfig } from '../lib/history.js'
 import { Thumb } from '../components/Media.jsx'
@@ -585,7 +586,11 @@ export default function RoutineEdit() {
     <div className="small dim row" style={{ margin: '10px 2px', gap: 5 }}><Icon name="link" style={{ fontSize: 13 }} />{t('Tap the link button on an exercise to superset it with the one above. You’ll do them back-to-back.')}</div>
     <Button onClick={() => {
       const copy = copyRoutine(r, t('Copy'))
-      update(s => { s.routines.push(copy) })
+      // Fork change: the copy stays in the day's program, right after it
+      update(s => {
+        s.routines.push(copy)
+        placeCopyNextTo(s, id, copy.id, todayISO(), Date.now(), t('My program'))
+      })
       nav('/plan/r/' + copy.id)
     }}>{t('Copy routine')}</Button>
     <div style={{ height: 10 }} />

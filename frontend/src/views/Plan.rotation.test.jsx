@@ -338,16 +338,16 @@ describe('Plan — Schedule extras', () => {
     expect(host.querySelector('.plan-link')).toBe(null)
   })
 
-  it('switches to Routines and remembers it for next time', () => {
+  it('switches to Programs and remembers it for next time', () => {
     mount()
     const seg = label => [...host.querySelectorAll('.plan-views button')].find(b => b.textContent === label)
-    click(seg('Routines'))
+    click(seg('Programs'))
     expect(localStorage.getItem('gym_plan_view')).toBe('routines')
     expect(host.querySelector('.plan-mode')).toBe(null)
-    expect(host.querySelector('.plan-routines')).toBeTruthy()
+    expect(host.querySelector('.plan-programs')).toBeTruthy()
     act(() => root.unmount()); root = createRoot(host)
     act(() => root.render(<Plan />))
-    expect(seg('Routines').className).toContain('on')
+    expect(seg('Programs').className).toContain('on')
     click(seg('Schedule'))
     expect(localStorage.getItem('gym_plan_view')).toBe('schedule')
     expect(host.querySelector('.plan-mode')).toBeTruthy()

@@ -7,12 +7,12 @@ import { createRoot } from 'react-dom/client'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { loadStarterPlan, starterPlanSheet } from './sheets.jsx'
+import { activeProgramOf } from './lib/programs.js'
 
 const mounted = []
 
 const S = () => useStore.getState().S
-// S.week[day] is a routine-id list now; the starter plan writes a one-element list per day.
-const nameOn = day => S().routines.find(r => r.id === [].concat(S().week[day] ?? [])[0])?.name
+const nameOf = id => S().routines.find(r => r.id === id)?.name
 
 // Renders whatever sheet is on top and returns its host element.
 function renderTop() {
@@ -39,7 +39,10 @@ beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   useUI.setState({ sheets: [], toastMsg: '' })
   useStore.setState(s => ({
-    S: { ...s.S, routines: [{ id: 'mine', name: 'My routine', emoji: 'star', ex: [] }], week: {}, active: null },
+    S: {
+      ...s.S, routines: [{ id: 'mine', name: 'My routine', emoji: 'star', ex: [] }], week: {}, active: null,
+      programs: [], activeProgramId: null, rotation: null, queue: null, scheduleMode: null, workouts: [], dayPlan: {},
+    },
   }))
   document.body.innerHTML = ''
 })
@@ -57,63 +60,56 @@ describe('starter plan chooser', () => {
     expect(rowFor(host, 'Upper / Lower').querySelector('.ss').textContent).toContain('4 days per week')
   })
 
-  it('loads straight away when the plan’s weekdays are free, without asking', () => {
+  // Fork change: a starter plan is a program of days that starts running, with no weekdays.
+  it('loads as a program of its own and starts it, without asking when nothing else runs', () => {
     useStore.setState(s => ({ S: { ...s.S, week: { 0: ['mine'], 6: ['mine'] } } }))
     choose('Upper / Lower')
 
     expect(useUI.getState().sheets).toHaveLength(0)   // no confirmation was raised
-    expect(nameOn(1)).toBe('Upper A')
-    expect(nameOn(2)).toBe('Lower A')
-    expect(nameOn(4)).toBe('Upper B')
-    expect(nameOn(5)).toBe('Lower B')
-    expect(S().week[0]).toEqual(['mine'])             // untouched weekdays stay put
-    expect(S().week[6]).toEqual(['mine'])
-    expect(S().routines[0].name).toBe('My routine')   // and nothing is deleted
+    const program = activeProgramOf(S())
+    expect(program.name).toBe('Upper / Lower')
+    expect(program.days.map(nameOf)).toEqual(['Upper A', 'Lower A', 'Upper B', 'Lower B'])
+    expect(S().queue.ids).toEqual(program.days)
+    expect(S().week).toEqual({ 0: ['mine'], 6: ['mine'] })   // the weekly plan is not touched
+    expect(S().routines[0].name).toBe('My routine')           // and nothing is deleted
     expect(useUI.getState().toastMsg).toBe('Upper / Lower loaded')
   })
 
-  it('loading the same plan twice reuses its routines instead of duplicating them', () => {
+  it('loading the same plan twice reuses its days and its program instead of duplicating them', () => {
     expect(loadStarterPlan('upper-lower')).toBe(true)
     const ids = S().routines.map(r => r.id)
-    const week = structuredClone(S().week)
+    const programs = structuredClone(S().programs)
     expect(loadStarterPlan('upper-lower')).toBe(true)
     expect(S().routines.map(r => r.id)).toEqual(ids)
     expect(S().routines.filter(r => r.name === 'Upper A')).toHaveLength(1)
-    expect(S().week).toEqual(week)
+    expect(S().programs.map(p => p.id)).toEqual(programs.map(p => p.id))
   })
 
-  it('asks first when a weekday the plan wants is already taken', () => {
-    useStore.setState(s => ({ S: { ...s.S, week: { 3: ['mine'] } } }))
+  it('asks first when another program is running', () => {
+    loadStarterPlan('ppl')
+    const days = S().routines.length
     choose('Full Body')
 
     const confirm = renderTop()
     expect(confirm.querySelector('h3').textContent).toBe('Load Full Body?')
-    expect(confirm.textContent).toContain('Monday, Wednesday and Friday')
-    expect(S().week[3]).toEqual(['mine'])                  // nothing applied yet
-    expect(S().routines).toHaveLength(1)
+    expect(confirm.textContent).toContain('Push / Pull / Legs')
+    expect(S().routines).toHaveLength(days)                  // nothing applied yet
 
     act(() => { buttonFor(confirm, 'Load plan').click() })
-    expect(nameOn(1)).toBe('Full Body A')
-    expect(nameOn(3)).toBe('Full Body B')
-    expect(nameOn(5)).toBe('Full Body C')
+    expect(activeProgramOf(S()).days.map(nameOf)).toEqual(['Full Body A', 'Full Body B', 'Full Body C'])
+    expect(S().programs.map(p => p.name)).toContain('Push / Pull / Legs')
   })
 
   it('leaves everything alone when the confirmation is cancelled', () => {
-    useStore.setState(s => ({ S: { ...s.S, week: { 1: ['mine'] } } }))
+    loadStarterPlan('ppl')
     const before = structuredClone(S())
+    useUI.setState({ toastMsg: '' })
     choose('5×5')
 
     const confirm = renderTop()
     act(() => { buttonFor(confirm, 'Cancel').click() })
     expect(S()).toEqual(before)
     expect(useUI.getState().toastMsg).toBe('')
-  })
-
-  it('does not ask when only weekdays outside the plan are occupied', () => {
-    useStore.setState(s => ({ S: { ...s.S, week: { 2: ['mine'], 4: ['mine'] } } }))   // Tue + Thu
-    choose('5×5')                                                                // wants Mon/Wed/Fri
-    expect(useUI.getState().sheets).toHaveLength(0)
-    expect(nameOn(1)).toBe('5×5 A')
   })
 })
 
@@ -163,7 +159,7 @@ describe('starter plan chooser, fitted to equipment', () => {
     const pushes = S().routines.filter(r => r.name === 'Push Day')
     expect(pushes).toHaveLength(2)
     expect(pushes[0].ex.map(e => e.id)).not.toEqual(pushes[1].ex.map(e => e.id))
-    expect(S().week[1]).toEqual([pushes[1].id])
+    expect(activeProgramOf(S()).days[0]).toBe(pushes[1].id)
   })
 
   it('still reuses the routines when the same fitted plan is loaded twice', () => {

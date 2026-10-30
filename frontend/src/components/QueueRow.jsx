@@ -3,6 +3,7 @@ import { effectiveRoutineIds } from '../lib/history.js'
 import { fmtDate } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { sequenceOf, isSimpleSequence } from '../lib/rotation.js'
+import { activeProgramOf } from '../lib/programs.js'
 import Icon from './Icon.jsx'
 
 // Home's progress row for a coach week (S.queue) — it stands in for the seven weekday dots
@@ -16,6 +17,7 @@ import Icon from './Icon.jsx'
 export default function QueueRow({ S, today, onStart, managed }) {
   const v = queueView(S, today)
   if (!v) return null
+  const programName = Array.isArray(S.programs) ? activeProgramOf(S)?.name : null
   const word = { done: t('Done'), next: t('Up next'), later: t('Later') }
   const next = v.items.find(i => i.state === 'next')
   // With every remaining session pinned to its own day nothing floats, so there is no 'next'
@@ -35,8 +37,9 @@ export default function QueueRow({ S, today, onStart, managed }) {
   return <div className="queue">
     <div className="row between" style={{ marginBottom: 8 }}>
       {/* Your own loop is called 'Rotation' in the language on screen: its saved name is only ever
-          the word itself, which older saves kept in the language the loop was made in. */}
-      <div className="small muted" style={{ fontWeight: 500 }}>{managed ? t('Rotation') : v.label}</div>
+          the word itself, which older saves kept in the language the loop was made in. Fork
+          change: a loop run by a program carries the program's name instead. */}
+      <div className="small muted" style={{ fontWeight: 500 }}>{managed ? (programName || t('Rotation')) : v.label}</div>
       {/* Your own loop speaks in rounds, as Plan does; a coach's week keeps its plain count. */}
       <div className="small muted">{managed ? t('{0} of {1} done this round.', v.items.length - v.remaining.length, v.items.length) : `${v.items.length - v.remaining.length} / ${v.items.length}`}</div>
     </div>

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { DAYN, DAYS, weekOrder, weekStartOf, uid, exCount, routineCount, todayISO, fmtDate } from '../lib/format.js'
+import { DAYN, DAYS, weekOrder, weekStartOf, exCount, routineCount, todayISO, fmtDate } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import {
   dayAssignSheet, starterPlanSheet, confirmSheet, menuSheet,
@@ -12,13 +12,15 @@ import Icon from '../components/Icon.jsx'
 import { SeasonDeco } from '../components/Seasonal.jsx'
 import { Button, Row, Section, Segmented } from '../components/ui.jsx'
 import SwipeRow from '../components/SwipeRow.jsx'
-import { copyRoutine, deleteRoutine, restoreRoutine, routineSnapshot } from '../lib/routines.js'
+import { deleteRoutine, restoreRoutine, routineSnapshot } from '../lib/routines.js'
 import MiniBodyMap from '../components/MiniBodyMap.jsx'
 import { workoutControls } from '../lib/workout-controls.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { useListReorder, moved } from '../lib/use-list-reorder.js'
-import { glyphOf, DEFAULT_GLYPH } from '../lib/glyphs.js'
+import { glyphOf } from '../lib/glyphs.js'
 import { DEMO } from '../lib/demo.js'
+import { activeProgramOf } from '../lib/programs.js'
+import Programs from './PlanPrograms.jsx'
 import { MOBILE } from '../lib/mobile.js'
 import { coachAvailable } from '../lib/coach.js'
 import { queueOf, queueView } from '../lib/queue.js'
@@ -125,9 +127,6 @@ export function undoTakeOut({ id, at, label, snap, mark, marks }) {
   return true
 }
 
-// The flash a row lands with when a swipe brought it (a duplicate, an undo): one per new value.
-let flashSeq = 0
-
 export default function Plan() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
@@ -166,21 +165,25 @@ export default function Plan() {
   const pickFile = ev => { const f = ev.target.files[0]; ev.target.value = ''; importPlanFile(f) }
 
   const mode = scheduleModeOf(S)
+  // The running program names the plan while its loop runs
+  const activeName = mode === 'rotation' ? activeProgramOf(S, t('My program'))?.name : null
 
   return <div className="narrow plan">
     <div className="hdr">
       <SeasonDeco spot="header-bats" />
-      <div><h1>{t('Plan')}</h1><div className="sub">{mode === 'rotation' ? t('Your routines in a loop') : t('Your weekly routine')}</div></div>
+      <div><h1>{t('Plan')}</h1><div className="sub">{activeName ? t('Program: {0}', activeName) : mode === 'rotation' ? t('Your routines in a loop') : t('Your weekly routine')}</div></div>
       <div className="hdr-actions">
         {showCoach && <Button size="sm" variant="tinted" icon="sparkles" onClick={() => nav('/coach')}>{t('Coach')}</Button>}
         <button className="iconbtn" onClick={openMenu} aria-label={t('Plan options')} title={t('Plan options')}><Icon name="share" /></button>
       </div>
     </div>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
+    {/* Fork change: the second view lists programs, each made of days (views/PlanPrograms.jsx).
+        The stored value stays 'routines', so the view remembered before the change comes back. */}
     <Segmented className="plan-views" value={view} onChange={setView}
-      options={[{ value: 'schedule', label: t('Schedule') }, { value: 'routines', label: t('Routines') }]} />
+      options={[{ value: 'schedule', label: t('Schedule') }, { value: 'routines', label: t('Programs') }]} />
     {view === 'routines'
-      ? <Routines S={S} update={update} nav={nav} />
+      ? <Programs S={S} update={update} nav={nav} />
       : <Schedule S={S} update={update} nav={nav} mode={mode} />}
   </div>
 }
@@ -402,86 +405,3 @@ function Schedule({ S, update, nav, mode }) {
   </>
 }
 
-/* ================================ Routines ================================ */
-
-function Routines({ S, update, nav }) {
-  const [edit, setEdit] = useState(false)
-  const [flash, setFlash] = useState(null)
-  const swipe = workoutControls(S).swipeSets
-  const routines = S.routines
-  // The order of this list is the order of `S.routines`, and every other screen reads the same
-  // array (the Start screen, the day sheets, the routine pickers), so moving a routine here moves
-  // it everywhere (#142). Reordering lives behind Edit, like on an iPhone.
-  const reorder = useListReorder(routines.length, (from, to) => update(s => {
-    if (to < 0 || to >= s.routines.length) return
-    const [m] = s.routines.splice(from, 1)
-    s.routines.splice(to, 0, m)
-  }))
-
-  const addRoutine = () => {
-    const r = { id: uid(), name: t('New routine'), emoji: DEFAULT_GLYPH, ex: [] }
-    update(s => { s.routines.push(r) })
-    nav('/plan/r/' + r.id)
-  }
-  // The same delete as RoutineEdit's "Delete routine" button (lib/routines.js), with an Undo in
-  // place of its confirm (v1.3.11): the swipe and the edit-mode minus both land here.
-  const remove = r => deleteRoutineWithUndo(r.id)
-  // The swipe's other side: a copy right below the original, named the way "Copy routine" names
-  // one, and staying on this list rather than opening it.
-  const duplicate = r => {
-    const copy = copyRoutine(r, t('Copy'))
-    update(s => {
-      const at = s.routines.findIndex(x => x.id === r.id)
-      s.routines.splice(at < 0 ? s.routines.length : at + 1, 0, copy)
-    })
-    setFlash({ id: copy.id, n: ++flashSeq })
-    // With its own Undo: the toast takes the place of any Undo still showing (one toast at a
-    // time), so the newest swipe is at least the one you can take back.
-    useUI.getState().toast(t('Copied as “{0}”.', copy.name), { action: t('Undo'), onAction: () => {
-      update(s => { if (s.routines.some(x => x.id === copy.id)) deleteRoutine(s, copy.id) })
-    } })
-  }
-  // The weekdays a routine is on, short, in the order the week runs.
-  const order = weekOrder(weekStartOf(S))
-  const daysOf = id => order.filter(d => [].concat(S.week[d] || []).includes(id)).map(d => t(DAYS[d]))
-  const sub = r => [exCount(r.ex.length), daysOf(r.id).join(', ')].filter(Boolean).join(' · ')
-
-  return <>
-    <div className="row between plan-sec-h plan-routines-bar">
-      {routines.length > 0
-        ? <button className="plan-textbtn" aria-pressed={edit} onClick={() => setEdit(e => !e)}>{edit ? t('Done') : t('Edit')}</button>
-        : <span />}
-      <Button size="sm" variant="tinted" icon="plus" onClick={addRoutine}>{t('New routine')}</Button>
-    </div>
-    {routines.length ? <>
-      {edit
-        ? <div className="list routine-list plan-routines is-editing" ref={reorder.listRef}>{routines.map((r, i) =>
-          <div key={r.id} data-reorder-row className="item plan-routine" style={reorder.rowStyle(i)}>
-            <button className="plan-minus" aria-label={t('Delete {0}', r.name)} title={t('Delete routine')} onClick={() => remove(r)}><Icon name="minus" /></button>
-            <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-            <div className="grow"><div className="tt">{r.name}</div><div className="ss">{sub(r)}</div></div>
-            {routines.length > 1 && <button className="plan-handle" aria-label={t('Move {0}', r.name)} title={t('Drag to reorder')}
-              {...reorder.handle(i)}><Icon name="chevronsUpDown" /></button>}
-          </div>)}</div>
-        : <div className="list routine-list plan-routines">{routines.map(r => {
-          const row = <div key={r.id} className="item plan-routine" {...tappable(() => nav('/plan/r/' + r.id))}>
-            <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-            <div className="grow"><div className="tt">{r.name}</div><div className="ss">{sub(r)}</div></div>
-            <MiniBodyMap routines={[r]} body={S.body} />
-            <Icon name="chevronRight" className="chev" /></div>
-          // Swipe (v1.3.11, Settings → Swipe actions): toward the start deletes with an Undo,
-          // toward the end duplicates. Edit's minus and the routine's own page stay the way in
-          // for a keyboard and a screen reader.
-          return swipe
-            ? <SwipeRow key={r.id} className="swrow-item" copyLabel={t('Duplicate')}
-              onDelete={() => remove(r)} onCopy={() => duplicate(r)}
-              flash={flash?.id === r.id ? flash.n : 0}>{row}</SwipeRow>
-            : row
-        })}</div>}
-      <p className="sect-f">{edit ? t('Drag to reorder. Tap the minus to delete.') : t('Tap a routine to edit it. Reorder and delete are behind Edit.')}</p>
-    </> : <>
-      <div className="empty"><div className="ico"><Icon name="clipboard" /></div>{t('No routines yet.')}<br />{t('Make one, or grab the starter plan to get going.')}</div>
-      <Button icon="clipboard" onClick={starterPlanSheet}>{t('Load starter plan')}</Button>
-    </>}
-  </>
-}

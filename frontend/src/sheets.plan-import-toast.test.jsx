@@ -9,6 +9,7 @@ import { useUI } from './store/useUI.js'
 import { planImportSheet } from './sheets.jsx'
 import { parsePlan } from './lib/plan-share.js'
 import { EXDB } from './lib/exercises.js'
+import { activeProgramOf } from './lib/programs.js'
 
 const clone = v => JSON.parse(JSON.stringify(v))
 const ids = EXDB.filter(e => e.bp !== 'cardio').slice(0, 2).map(e => e.id)
@@ -52,5 +53,33 @@ describe('Plan import sheet — the toast counts what it added', () => {
     const host = renderTop()
     act(() => { buttonFor(host, 'Add to my plan').click() })
     expect(useUI.getState().toastMsg).toBe('Added 2 routines to your plan')
+  })
+})
+
+// Fork change: a plan file is a program, its routines the program's days
+describe('Plan import sheet — the file becomes a program', () => {
+  const named = (name, routines) => ({ ...bundleOf(routines), name })
+  const switchFor = host => host.querySelector('.switch, [role="switch"]')
+
+  it('adds the days as a program named after the file and starts it when nothing runs', () => {
+    planImportSheet(named('Shared PPL', [routine('a', 'Push'), routine('b', 'Pull')]))
+    const host = renderTop()
+    act(() => { buttonFor(host, 'Add to my plan').click() })
+    const S = useStore.getState().S
+    const program = activeProgramOf(S)
+    expect(program.name).toBe('Shared PPL')
+    expect(program.days.map(id => S.routines.find(r => r.id === id).name)).toEqual(['Push', 'Pull'])
+    expect(S.queue.ids).toEqual(program.days)
+  })
+
+  it('keeps the running program when starting the new one is switched off', () => {
+    useStore.setState(s => ({ S: { ...s.S, programs: [{ id: 'mine', name: 'Mine', emoji: 'barbell', days: [] }], activeProgramId: 'mine' } }))
+    planImportSheet(named('Shared PPL', [routine('a', 'Push')]))
+    const host = renderTop()
+    act(() => { switchFor(host).click() })
+    act(() => { buttonFor(host, 'Add to my plan').click() })
+    const S = useStore.getState().S
+    expect(S.activeProgramId).toBe('mine')
+    expect(S.programs.map(p => p.name)).toEqual(['Mine', 'Shared PPL'])
   })
 })

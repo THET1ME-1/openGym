@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-// Swipe actions on Plan (v1.3.11). The routines list: toward the start deletes with an Undo (no
-// confirm), toward the end duplicates. The loop: toward the start takes the routine out, with an
+// Swipe actions on Plan (v1.3.11). The loop: toward the start takes the routine out, with an
 // Undo, and nothing on the other side. Weekday rows do not swipe. The rows stay keyboard buttons.
+// The days of a program swipe on the program's page (ProgramEdit.swipe.test.jsx).
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -83,94 +83,14 @@ afterEach(() => {
   vi.mocked(Element.prototype.animate).mockRestore?.()
 })
 
-describe('the routines list', () => {
-  it('rows stay keyboard buttons that open the routine, with both panes out of reach while shut', () => {
-    mount('routines')
-    expect(swrows()).toHaveLength(3)
-    const r = rowOf('Pull A').querySelector('.item')
-    expect(r.getAttribute('role')).toBe('button')
-    expect(r.tabIndex).toBe(0)
-    act(() => { r.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
-    expect(nav).toHaveBeenLastCalledWith('/plan/r/b')
-    click(rowOf('Push A').querySelector('.item'))
-    expect(nav).toHaveBeenLastCalledWith('/plan/r/a')
-    const panes = rowOf('Push A').querySelectorAll('.swpane')
-    expect(panes).toHaveLength(2)
-    for (const pane of panes) {
-      expect(pane.getAttribute('aria-hidden')).toBe('true')
-      expect(pane.hasAttribute('inert')).toBe(true)
-      expect(pane.querySelector('button').tabIndex).toBe(-1)
-    }
-    expect(rowOf('Push A').querySelector('.swpane.cp').textContent).toBe('Duplicate')
-  })
-
-  it('a long swipe toward the start deletes without a confirm, and Undo puts everything back', () => {
-    mount('routines')
-    const before = clone(S())
-    swipe(rowOf('Pull A'), 330, 60)
-    expect(confirmSheet).not.toHaveBeenCalled()
-    expect(S().routines.map(r => r.id)).toEqual(['a', 'c'])
-    expect(S().week).toEqual({ 1: ['a'], 5: ['c'] })
-    expect(S().dayPlan).toEqual({})
-    expect(useUI.getState().toastMsg).toBe('“Pull A” gone.')
-    expect(nav).not.toHaveBeenCalled()
-
-    undo()
-    // the same routines in the same order, the one put back without an edit time it never had
-    // (stamped "now", it beat a rename an older app made offline before the swipe)
-    expect(S().routines).toEqual(before.routines)
-    expect(S().week).toEqual(before.week)
-    expect(S().dayPlan).toEqual(before.dayPlan)
-    expect(rowOf('Pull A')).toBeTruthy()
-  })
-
-  it('a long swipe toward the end duplicates right below, and stays on the list', () => {
-    mount('routines')
-    swipe(rowOf('Push A'), 100, 330)
-    expect(S().routines.map(r => r.name)).toEqual(['Push A', 'Push A (Copy)', 'Pull A', 'Legs'])
-    const copy = S().routines[1]
-    expect(copy.id).not.toBe('a')
-    expect(copy.ex).toEqual(S().routines[0].ex)
-    expect(S().week).toEqual({ 1: ['a', 'b'], 3: ['b'], 5: ['c'] })   // a copy is not planned anywhere
-    expect(useUI.getState().toastMsg).toBe('Copied as “Push A (Copy)”.')
-    expect(nav).not.toHaveBeenCalled()
-  })
-
-  it('the duplicate’s toast has its own Undo, which takes the copy away again', () => {
-    mount('routines')
-    swipe(rowOf('Push A'), 100, 330)
-    expect(S().routines).toHaveLength(4)
-    expect(useUI.getState().toastAction).toBeTruthy()
-    undo()
-    expect(S().routines.map(r => r.id)).toEqual(['a', 'b', 'c'])
-  })
-
-  it('an Undo that finds the routine already back says so instead of nothing', () => {
-    mount('routines')
-    act(() => { deleteRoutineWithUndo('b') })
-    const pending = useUI.getState().toastAction
-    act(() => useStore.getState().update(s => { s.routines.splice(1, 0, routine('b', 'Pull A')) }))   // a sync brought it back
-    act(() => pending.run())
-    expect(S().routines.map(r => r.id)).toEqual(['a', 'b', 'c'])
-    expect(useUI.getState().toastMsg).toBe('It’s already back.')
-  })
-
-  it('Edit’s minus deletes the same way, with the Undo in place of the confirm', () => {
-    mount('routines')
-    click(host.querySelector('.plan-textbtn'))
-    click(host.querySelector('button[aria-label="Delete Legs"]'))
-    expect(confirmSheet).not.toHaveBeenCalled()
-    expect(S().routines.map(r => r.id)).toEqual(['a', 'b'])
-    undo()
-    expect(S().routines.map(r => r.id)).toEqual(['a', 'b', 'c'])
-    expect(S().week[5]).toEqual(['c'])
-  })
-
-  it('is a plain list with the setting off', () => {
-    mount('routines', { wc: { ...DEF.wc, swipeSets: false } })
-    expect(swrows()).toHaveLength(0)
-    expect(host.querySelectorAll('.item.plan-routine')).toHaveLength(3)
-  })
+// Fork change: the routines list became Programs, its days swipe on the program's own page
+// (ProgramEdit.swipe.test.jsx). The weekday Undo of a delete is still covered here, by the loop's.
+it('a deleted day comes back onto its weekdays with the Undo', () => {
+  mount('schedule')
+  act(() => { deleteRoutineWithUndo('b') })
+  expect(S().week).toEqual({ 1: ['a'], 5: ['c'] })
+  undo()
+  expect(S().week).toEqual({ 1: ['a', 'b'], 3: ['b'], 5: ['c'] })
 })
 
 describe('the loop', () => {

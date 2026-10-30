@@ -147,6 +147,21 @@ describe('Home — coach week progress row', () => {
     expect(todayTitle()).toBe('Core')
   })
 
+  // Fork change: a loop run by a program wears the program's name
+  it('a pass run by a program is named after the program, an own loop without one is the Rotation', () => {
+    setS({
+      queue: queue({ rotationId: 'r1' }),
+      rotation: { id: 'r1', sequence: ['d1', 'd2', 'd3'], label: 'PPL' },
+      programs: [{ id: 'p1', name: 'PPL', emoji: 'barbell', days: ['d1', 'd2', 'd3'] }], activeProgramId: 'p1',
+    })
+    mount()
+    expect(host.querySelectorAll('.queue .row .small')[0].textContent).toBe('PPL')
+    act(() => root.unmount()); root = createRoot(host)
+    setS({ queue: queue({ rotationId: 'r1' }), rotation: { id: 'r1', sequence: ['d1', 'd2', 'd3'], label: '' }, programs: undefined, activeProgramId: undefined })
+    mount()
+    expect(host.querySelectorAll('.queue .row .small')[0].textContent).toBe('Rotation')
+  })
+
   it('a pass this app manages gets its own copy, not the coach-week wording', () => {
     setS({
       queue: queue({ rotationId: 'r1' }),

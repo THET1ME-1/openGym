@@ -9,9 +9,10 @@ import { usesBar, hasBarOverride, isNoBar, barTypeWeight, ownBarDefault, barPick
 import { PLATE_SIZES, pairsOf, ownsPlates, withPlatePairs, withStandardPlates, withLoadKind, loadKindFor, baseWeightFor, dropGrid } from './lib/plates.js'
 import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
 import { beep, vibrate } from './lib/sound.js'
-import { t, tn, dateLocale, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from './lib/i18n.js'
+import { t, tn, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from './lib/i18n.js'
 import { nav, closeThenNav, navToWorkout } from './lib/nav.js'
-import { buildStarterPlan, starterPlanDays, starterPlanOptions } from './lib/starter.js'
+import { buildStarterPlan, starterPlanOptions } from './lib/starter.js'
+import { programsOf, activeProgramOf, activateProgram, programFromImport } from './lib/programs.js'
 import Media, { Thumb } from './components/Media.jsx'
 import CustomMediaField from './components/CustomMediaField.jsx'
 import WorkoutMediaSection, { workoutMediaCount } from './components/WorkoutMedia.jsx'
@@ -200,33 +201,32 @@ export function loadStarterPlan(planId, profile) {
       if (have) idOf[r.id] = have.id
       else { st.routines.push(r); idOf[r.id] = r.id }
     })
-    plan.schedule.forEach(({ day, routineId }) => { st.week[day] = [idOf[routineId]] })
+    // Fork change: the plan is a program of its days that starts running today, the weekly plan
+    // stays as it was. The same plan loaded again finds its program and only starts it.
+    const fallback = t('My program')
+    const days = [...new Set(plan.routines.map(r => idOf[r.id]))]
+    const same = programsOf(st, fallback).find(p => p.days.length === days.length && p.days.every((d, i) => d === days[i]))
+    const programId = same ? same.id : programFromImport(st, days, PLAN_COPY[planId]().name, fallback)
+    if (!same?.active) activateProgram(st, programId, todayISO(), Date.now(), fallback)
   })
   if (plan.fit) toast(t('{0} loaded, fitted to "{1}": {2} swapped, {3} dropped', PLAN_COPY[planId]().name, profile.name, plan.fit.swapped, plan.fit.dropped))
   else toast(t('{0} loaded', PLAN_COPY[planId]().name))
   return true
 }
 
-// Intl joins the days the way each language does it — "and" vs "und", "、" in Chinese.
-const dayList = days => new Intl.ListFormat(dateLocale()).format(days.map(d => t(DAYN[d])))
-
 function StarterPlanChooser({ close }) {
-  const week = useStore(s => s.S.week)
-  const routines = useStore(s => s.S.routines)
   const profiles = useStore(s => s.S.equipProfiles) || []
   // Fitting starts on for the profile you already filter by; '' leaves the plan as written.
   const [fitId, setFitId] = useState(() => activeProfile(useStore.getState().S)?.id || '')
   const fit = profiles.find(p => p.id === fitId) || null
+  // Fork change: the plan becomes the running program, so it asks only when another one runs
+  const running = activeProgramOf(useStore.getState().S, t('My program'))
   const choose = (id, name) => {
-    const days = starterPlanDays(id)
     close()
-    // A confirmation is only worth showing when one of those days is actually occupied — by a
-    // routine that still exists, not by a stale id the Plan already shows as "Rest".
-    const taken = day => [].concat(week[day] || []).some(id => routines.some(r => r.id === id))
-    if (!days.some(taken)) { loadStarterPlan(id, fit); return }
+    if (!running || running.name === name) { loadStarterPlan(id, fit); return }
     confirmSheet({
       title: t('Load {0}?', name),
-      message: t('The new plan goes on {0}. Your existing routines stay; only those days of the weekly plan change.', dayList(days)),
+      message: t('“{0}” is running now. {1} takes its place from today, and “{0}” stays in your programs.', running.name, name),
       confirmText: t('Load plan'),
       onConfirm: () => loadStarterPlan(id, fit)
     })
@@ -2512,10 +2512,17 @@ export function importPlanFile(f, onRead) {
 
 export const planImportSheet = bundle => ui().openSheet(close => <PlanImport bundle={bundle} close={close} />)
 
+// Fork change: the file's routines become the days of a new program, named after the file, and
+// that program starts running unless switched off. The weekly plan is left alone.
 function PlanImport({ bundle, close }) {
-  const [schedule, setSchedule] = useState(false)
+  const [start, setStart] = useState(true)
   const apply = () => {
-    update(s => mergePlan(s, bundle, { schedule }))
+    update(s => {
+      const { ids } = mergePlan(s, bundle, { schedule: false })
+      const fallback = t('My program')
+      const programId = programFromImport(s, ids, bundle.name || t('Imported program'), fallback)
+      if (start) activateProgram(s, programId, todayISO(), Date.now(), fallback)
+    })
     close()
     toast(tn('Added {0} routine to your plan', 'Added {0} routines to your plan', bundle.routineCount))
     nav('/plan')
@@ -2525,20 +2532,17 @@ function PlanImport({ bundle, close }) {
     <div className="muted small" style={{ marginBottom: 14 }}>
       {routineCount(bundle.routineCount)}
       {' · ' + exCount(bundle.exerciseCount)}
-      {bundle.scheduledDays > 0
-        ? ' · ' + tn('scheduled on {0} day', 'scheduled on {0} days', bundle.scheduledDays)
-        : ''}
     </div>
-    <div className="dim small" style={{ marginBottom: 14, lineHeight: 1.4 }}>{t('These are added as new routines. Nothing you already have is touched.')}</div>
+    <div className="dim small" style={{ marginBottom: 14, lineHeight: 1.4 }}>{t('They come in as a new program. Nothing you already have is touched.')}</div>
     {bundle.dropped > 0 && <div className="small" style={{ color: 'var(--yellow)', marginBottom: 14, lineHeight: 1.4 }}>
       {t(bundle.dropped === 1
         ? '{0} exercise in the file isn’t in your library and was left out.'
         : '{0} exercises in the file aren’t in your library and were left out.', bundle.dropped)}
     </div>}
-    {bundle.scheduledDays > 0 && <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', borderBottom: '1px solid var(--sep)', marginBottom: 16, gap: 12 }}>
-      <div><div className="tt" style={{ fontSize: 15 }}>{t('Use this weekly schedule')}</div><div className="small dim">{t('Replaces your current Mon–Sun assignments.')}</div></div>
-      <Switch checked={schedule} onChange={setSchedule} />
-    </div>}
+    <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', borderBottom: '1px solid var(--sep)', marginBottom: 16, gap: 12 }}>
+      <div><div className="tt" style={{ fontSize: 15 }}>{t('Start this program')}</div><div className="small dim">{t('Its days come up one after another from today, whatever the weekday.')}</div></div>
+      <Switch checked={start} onChange={setStart} />
+    </div>
     <Button variant="primary" onClick={apply}>{t('Add to my plan')}</Button>
     <div style={{ height: 8 }} />
     <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>

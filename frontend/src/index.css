@@ -2216,6 +2216,29 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .plan [data-reorder-row]{transition:transform var(--fast) var(--ease)}
 .plan-link{margin-top:24px}
 .plan-empty{padding:28px 20px}
+/* Fork change: Plan → Programs. A program is its title row with its days under it, drawn in
+   from the edge on a rule; the running program's title is ringed and its rule takes the accent. */
+.program-card{margin:0 0 20px}
+.program-card .program-hd{min-height:64px}
+.program-card .program-hd .tt{font-size:17px;font-weight:600}
+.program-card.is-active .program-hd{outline:1.5px solid var(--acc);outline-offset:-1.5px}
+.program-card .program-days{margin:8px 0 0 14px;padding-inline-start:12px;border-inline-start:2px solid var(--sep)}
+.program-card.is-active .program-days{border-color:var(--acc)}
+.program-none{padding:10px 2px 0 28px}
+.program-loose>h4.sec{margin:4px 0 8px}
+.program-loose .program-days{margin-inline-start:0;padding-inline-start:0;border:0}
+.program-day.is-done .tt{color:var(--label-2)}
+.program-move{flex:none}
+.program-status .lrow .tag{margin-inline-start:auto;flex:none}
+.program-start{width:100%;margin:-4px 0 6px}
+/* A narrow phone: the days sit closer to the edge and leave out the muscle figures, so a name
+   like "День 1. Пуш" keeps to one line */
+@media (max-width:379px){
+  .program-card:not(.program-loose) .program-days{margin-inline-start:6px;padding-inline-start:8px}
+  .program-card .program-days .bm-mini-wrap{display:none}
+  /* Start keeps only its icon here; the button is still named for a screen reader */
+  .program-hd .btn>span{display:none}
+}
 /* Stats: the card Plan links to clears the sticky banners when it is scrolled to */
 #weekly-volume{scroll-margin-top:calc(var(--sat) + var(--conn) + 96px)}
 
