@@ -7,11 +7,13 @@ android {
         buildConfig = true
     }
     defaultConfig {
-        applicationId "ch.duartesantos.opengym"
+        // Fork change: its own id, so the fork installs beside the author's app (signed with
+        // another key, it could not update it) and neither one's data is touched
+        applicationId "ch.duartesantos.opengym.fork"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 28
-        versionName "1.4.3"
+        versionCode 29
+        versionName "1.5.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -27,8 +29,9 @@ android {
             // Phones are ARM; the two x86 builds only serve emulators and a few Chromebooks, which
             // run ARM code through translation anyway. Leaving them out takes about 12 MB off
             // the APK. Release only: the debug build keeps x86_64 for the emulator test rig.
+            // Fork change: `-Pabis=arm64-v8a` builds for one CPU family only
             ndk {
-                abiFilters 'arm64-v8a', 'armeabi-v7a'
+                abiFilters(*((project.findProperty('abis') ?: 'arm64-v8a,armeabi-v7a').split(',')))
             }
         }
         debug {

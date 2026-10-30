@@ -43,7 +43,8 @@ describe('checkForUpdate', () => {
   it('asks GitHub for the latest published release (never a draft or a beta)', async () => {
     mockFetch({ tag_name: 'v' + __APP_VERSION__, assets: [] })
     await checkForUpdate()
-    expect(globalThis.fetch.mock.calls[0][0]).toBe('https://api.github.com/repos/DuarteSantos8/openGym/releases/latest')
+    // Fork change: the fork asks its own releases
+    expect(globalThis.fetch.mock.calls[0][0]).toBe('https://api.github.com/repos/THET1ME-1/openGym/releases/latest')
   })
 
   it('reports no update when the latest release matches the current version', async () => {
