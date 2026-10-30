@@ -70,6 +70,7 @@ vi.mock('../components/CameraScan.jsx', () => ({ default: props => { mocks.camer
 vi.mock('../components/QrCanvas.jsx', () => ({ default: ({ value, fmt }) => <i data-qr={value} data-fmt={fmt} /> }))
 
 import CheckIn, { openAddCard, openEditCard } from './CheckIn.jsx'
+import { isoOf, todayISO } from '../lib/format.js'
 
 /* ------------------------------- harness ------------------------------- */
 
@@ -616,6 +617,89 @@ describe('CheckIn — editing a card', () => {
     expect(update.mock.calls.length).toBe(writes)                             // no state write at all
     expect(mocks.toast).toHaveBeenCalledWith('That card was removed on another device')
     expect(mocks.toast).not.toHaveBeenCalledWith('Card updated')
+    expect(close).toHaveBeenCalledTimes(1)
+  })
+})
+
+// Fork change: a card in its own colour, with its term and the visits counted from workouts
+describe('CheckIn — the membership on the card', () => {
+  const day = n => { const d = new Date(todayISO() + 'T12:00:00'); d.setDate(d.getDate() + n); return isoOf(d) }
+  const workout = d => ({ id: 'w' + d, d, start: Date.parse(d + 'T18:00:00'), entries: [] })
+
+  it('shows the visits since the start, the days left and the card colour', () => {
+    mocks.S = {
+      gymCards: [card('a', { color: 'violet', from: day(-10), until: day(5) })], lastGymCardId: 'a',
+      workouts: [workout(day(-12)), workout(day(-3)), workout(day(-1)), workout(day(-1))],
+    }
+    mount()
+    const face = faces()[0]
+    expect(face.className).toContain('is-colored')
+    expect(face.style.getPropertyValue('--card-bg')).toBe('#bf5af2')
+    expect(face.querySelector('.ci-visits').textContent).toMatch(/^2 visits since /)
+    expect(face.querySelector('.ci-term').textContent).toContain('6 days left')
+  })
+
+  it('without dates counts this month, and shows no term', () => {
+    mocks.S = { gymCards: [card('a')], lastGymCardId: 'a', workouts: [workout(todayISO())] }
+    mount()
+    expect(faces()[0].querySelector('.ci-visits').textContent).toBe('1 visit this month')
+    expect(faces()[0].querySelector('.ci-term')).toBe(null)
+  })
+
+  it('an expired card says so and counts nothing after its last day', () => {
+    mocks.S = { gymCards: [card('a', { until: day(-1) })], lastGymCardId: 'a', workouts: [workout(todayISO())] }
+    mount()
+    expect(faces()[0].querySelector('.ci-term').textContent).toContain('Expired')
+    expect(faces()[0].querySelector('.ci-visits').textContent).toBe('0 visits this month')
+  })
+
+  it('a strip of this month marks the days with a workout', () => {
+    mocks.S = { gymCards: [card('a')], lastGymCardId: 'a', workouts: [workout(todayISO())] }
+    mount()
+    const days = [...faces()[0].querySelectorAll('.ci-month .ci-day')]
+    expect(days.length).toBeGreaterThanOrEqual(28)
+    expect(days.filter(d => d.className.includes('on'))).toHaveLength(1)
+  })
+
+  it('the edit sheet sets the colour and the term, and asks no visit limit', async () => {
+    mocks.S = { gymCards: [card('a')], lastGymCardId: 'a', workouts: [] }
+    openEditCard(mocks.S.gymCards[0])
+    await openSheet()
+    expect(sheetHost.querySelector('input[name="visits"]')).toBe(null)
+    await tap(sheetHost.querySelector('[data-color="sky"]'))
+    typeInto(sheetHost.querySelector('input[name="from"]'), '2026-10-01')
+    typeInto(sheetHost.querySelector('input[name="until"]'), '2026-10-31')
+    await tap(sheetBtn('Save card'))
+    expect(mocks.S.gymCards[0]).toMatchObject({ color: 'sky', from: '2026-10-01', until: '2026-10-31' })
+  })
+
+  it('clearing the colour and the dates takes them off the card, and a limit saved earlier with them', async () => {
+    mocks.S = { gymCards: [card('a', { color: 'red', from: '2026-10-01', until: '2026-10-31', visits: 8 })], lastGymCardId: 'a', workouts: [] }
+    openEditCard(mocks.S.gymCards[0])
+    await openSheet()
+    await tap(sheetHost.querySelector('[data-color=""]'))
+    typeInto(sheetHost.querySelector('input[name="from"]'), '')
+    typeInto(sheetHost.querySelector('input[name="until"]'), '')
+    await tap(sheetBtn('Save card'))
+    const saved = mocks.S.gymCards[0]
+    expect('color' in saved || 'from' in saved || 'until' in saved || 'visits' in saved).toBe(false)
+  })
+})
+
+// Fork change: a tap on the code shows it full screen on white, for the turnstile's scanner
+describe('CheckIn — the code full screen', () => {
+  const full = () => sheetHost.querySelector('.ci-full')
+
+  it('a tap on the code opens it big, in its own format, and a tap anywhere closes it', async () => {
+    mocks.S = { gymCards: [card('a', { fmt: 'code128', value: '5950000087583', color: 'sky' })], lastGymCardId: 'a', workouts: [] }
+    mount()
+    expect(mocks.sheets).toHaveLength(0)
+    await tap(byLabel(faces()[0], 'Show full screen')[0])
+    const { close } = await openSheet()
+    expect(full().querySelector('[data-qr]').getAttribute('data-qr')).toBe('5950000087583')
+    expect(full().querySelector('[data-qr]').getAttribute('data-fmt')).toBe('code128')
+    expect(full().textContent).toContain('A')
+    await tap(full())
     expect(close).toHaveBeenCalledTimes(1)
   })
 })

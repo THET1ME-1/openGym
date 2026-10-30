@@ -2150,6 +2150,39 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 /* Fork change: a barcode card, an SVG from bwip-js stretched to the box width */
 .barcode-svg{transition:opacity var(--fast)}
 .barcode-svg svg{display:block;width:100%;height:auto}
+/* Fork change: a membership card in its own colour. The face takes one of the app's accents and
+   its ink; the code keeps its white plate, since a turnstile reads black on white. Under it the
+   visits it counted, the term, and this month as a row of days. */
+.ci-card.is-colored{background:var(--card-bg);color:var(--card-ink)}
+.ci-card.is-colored .ci-card-btn{color:var(--card-ink)!important;background:rgba(127,127,127,.18);background:color-mix(in srgb,var(--card-ink) 12%,transparent)}
+.ci-card.is-colored .ci-value{color:var(--card-ink);opacity:.72}
+.ci-facts{width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:2px}
+.ci-visits{font-size:17px;font-weight:600;letter-spacing:-.01em;text-align:center;font-variant-numeric:tabular-nums}
+/* The code is a button now: a tap shows it full screen */
+.ci-plate-btn{display:block;border:0;cursor:zoom-in}
+.ci-plate-btn:active{transform:scale(.98)}
+.ci-full{position:fixed;inset:0;z-index:300;background:#fff;color:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:calc(20px + var(--sat,0px)) 20px calc(20px + var(--sab,0px));cursor:zoom-out}
+.ci-full-label{font-size:22px;font-weight:700;letter-spacing:-.015em;text-align:center}
+.ci-full-value{font-size:18px;letter-spacing:.06em;font-variant-numeric:tabular-nums;word-break:break-all;text-align:center}
+.ci-full-hint{position:absolute;bottom:calc(24px + var(--sab,0px));font-size:14px;color:#6e6e73}
+.ci-term{font-size:14px;opacity:.85;text-align:center}
+.ci-term.expired{color:var(--red);opacity:1;font-weight:600}
+.ci-card.is-colored .ci-term.expired{color:inherit}
+.ci-month{display:grid;gap:3px;width:100%;max-width:300px}
+.ci-day{justify-self:center;width:100%;max-width:7px;aspect-ratio:1;border-radius:50%;background:rgba(127,127,127,.3);background:color-mix(in srgb,currentColor 20%,transparent)}
+.ci-day.on{background:var(--acc)}
+.ci-card.is-colored .ci-day.on{background:currentColor}
+.ci-day.today{outline:1.5px solid currentColor;outline-offset:1px}
+.ci-day.future{opacity:.4}
+.ci-colors{margin-bottom:16px;gap:8px}
+/* The sheet's preview plate hugs its code in the middle; the two capture buttons share the row
+   and wrap their words, so "Импортировать фото" stays on a phone's screen */
+.ci-preview{width:fit-content;margin:0 auto 16px}
+.ci-capture>.btn{flex:1 1 0;min-width:0;white-space:normal}
+.ci-swatch-none{background:var(--surface-3);overflow:hidden}
+.ci-swatch-none::before{content:'';position:absolute;left:3px;right:3px;top:50%;height:2px;margin-top:-1px;background:var(--label-2);transform:rotate(-45deg)}
+.ci-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.ci-dates .field{width:100%;box-sizing:border-box}
 /* the trailing add card — a big + on a dashed outline, same footprint as a real card */
 .ci-add{
   scroll-snap-align:center;flex:0 0 100%;box-sizing:border-box;

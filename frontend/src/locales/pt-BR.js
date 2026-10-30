@@ -1713,6 +1713,22 @@ export const PT_BR_OVERRIDES = {
   '{0} programs': '{0} programas',
   '{0} training day': '{0} dia de treino',
   '{0} training days': '{0} dias de treino',
+  // Fork change: the membership card
+  'Card colour': 'Cor do cartão',
+  'Expired {0}': 'Venceu em {0}',
+  'No colour': 'Sem cor',
+  'Valid from': 'Válido a partir de',
+  'Valid until': 'Válido até',
+  'Valid until {0}': 'Até {0}',
+  'Visits are counted by themselves: a day with a logged workout is one visit.': 'As idas são contadas sozinhas: um dia com um treino registrado vale uma ida.',
+  '{0} visit since {1}': '{0} ida desde {1}',
+  '{0} visits since {1}': '{0} idas desde {1}',
+  '{0} visit this month': '{0} ida este mês',
+  '{0} visits this month': '{0} idas este mês',
+  'Show full screen': 'Mostrar em tela cheia',
+  'Tap anywhere to close': 'Toque em qualquer lugar para fechar',
+  '{0} day left': 'falta {0} dia',
+  '{0} days left': 'faltam {0} dias',
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES }

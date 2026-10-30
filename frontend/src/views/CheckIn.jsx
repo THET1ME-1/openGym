@@ -2,8 +2,9 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { uid } from '../lib/format.js'
-import { t } from '../lib/i18n.js'
+import { uid, todayISO, fmtDate, ACCENTS, ACCENT_INK, ACCENT_NAMES } from '../lib/format.js'
+import { t, tn } from '../lib/i18n.js'
+import { cardVisits, cardTerm, monthStrip, CARD_COLORS } from '../lib/gym-card.js'
 import { canRenderFmt, normalizeFmt } from '../lib/qr.js'
 import { scanCode, importCodeFromImage } from '../lib/scan.js'
 import { MOBILE } from '../lib/mobile.js'
@@ -120,19 +121,61 @@ function CardFace({ card, index, count }) {
     }),
   })
   const move = to => update(s => { s.gymCards = moveGymCard(s.gymCards, index, to) })
-  return <div className="ci-card">
+  // Fork change: the card in its own colour, with its term and the visits it has counted
+  const workouts = useStore(s => s.S.workouts)
+  const today = todayISO()
+  const visits = cardVisits(card, workouts, today)
+  const term = cardTerm(card, today)
+  const strip = monthStrip(workouts, today)
+  const color = CARD_COLORS.includes(card.color) ? card.color : null
+  const visitText = card.from ? tn('{0} visit since {1}', '{0} visits since {1}', visits.count, fmtDate(visits.since, true))
+    : tn('{0} visit this month', '{0} visits this month', visits.count)
+  return <div className={'ci-card' + (color ? ' is-colored' : '')}
+    style={color ? { '--card-bg': ACCENTS[color], '--card-ink': ACCENT_INK[color] } : undefined}>
     <div className="ci-card-hd">
       <button className="iconbtn ci-card-btn" onClick={() => openEditCard(card)} aria-label={t('Edit')}><Icon name="pencil" /></button>
       <div className="ci-label">{card.label}</div>
       <button className="iconbtn ci-card-btn" style={{ color: 'var(--red)' }} onClick={remove} aria-label={t('Remove')}><Icon name="trash" /></button>
     </div>
-    <div className="ci-qr-plate"><QrCanvas value={card.value} fmt={card.fmt} size={230} /></div>
+    {/* Fork change: a tap shows the code full screen, for a scanner that wants it big */}
+    <button className="ci-qr-plate ci-plate-btn" aria-label={t('Show full screen')} onClick={() => openFullCode(card)}>
+      <QrCanvas value={card.value} fmt={card.fmt} size={230} />
+    </button>
     <div className="ci-value">{card.value}</div>
+    <div className="ci-facts">
+      <div className="ci-visits">{visitText}</div>
+      {term && <div className={'ci-term' + (term.expired ? ' expired' : '')}>
+        {term.expired ? t('Expired {0}', fmtDate(term.until, true))
+          : t('Valid until {0}', fmtDate(term.until, true)) + ' · ' + tn('{0} day left', '{0} days left', term.daysLeft)}
+      </div>}
+      <div className="ci-month" style={{ gridTemplateColumns: `repeat(${strip.length}, 1fr)` }} role="img" aria-label={tn('{0} visit this month', '{0} visits this month', strip.filter(s => s.trained).length)}>
+        {strip.map(s => <span key={s.d} className={'ci-day' + (s.trained ? ' on' : '') + (s.today ? ' today' : '') + (s.future ? ' future' : '')} />)}
+      </div>
+    </div>
     {count > 1 && <div className="ci-reorder">
       <button className="iconbtn ci-card-btn" onClick={() => move(index - 1)} disabled={index === 0} aria-label={t('Move left')}><Icon name="chevronLeft" /></button>
       <span className="ci-pos">{index + 1} / {count}</span>
       <button className="iconbtn ci-card-btn" onClick={() => move(index + 1)} disabled={index === count - 1} aria-label={t('Move right')}><Icon name="chevronRight" /></button>
     </div>}
+  </div>
+}
+
+/* ------------------------------------------------------------------ full screen -- */
+
+// The code alone on white, as big as the phone allows, so a turnstile's scanner reads it from a
+// step away. It opens as the app's full-screen viewer (components/Modals.jsx), so Android back
+// closes it like any sheet; a tap anywhere closes it too.
+function openFullCode(card) {
+  useUI.getState().openSheet(close => <FullCode card={card} close={close} />, { kind: 'viewer' })
+}
+
+function FullCode({ card, close }) {
+  const size = Math.min((typeof window !== 'undefined' ? window.innerWidth : 360) - 40, 520)
+  return <div className="ci-full" role="dialog" aria-label={card.label} onClick={close}>
+    <div className="ci-full-label">{card.label}</div>
+    <QrCanvas value={card.value} fmt={card.fmt} size={size} />
+    <div className="ci-full-value">{card.value}</div>
+    <div className="ci-full-hint">{t('Tap anywhere to close')}</div>
   </div>
 }
 
@@ -158,9 +201,24 @@ function CardSheet({ close, card }) {
   const [value, setValue] = useState(card?.value || '')
   // Cards saved before barcodes were allowed carry no format: they are QR codes
   const [fmt, setFmt] = useState(normalizeFmt(card?.fmt) || 'qrcode')
+  // Fork change: the card's colour and its term, both optional
+  const [color, setColor] = useState(CARD_COLORS.includes(card?.color) ? card.color : '')
+  const [from, setFrom] = useState(card?.from || '')
+  const [until, setUntil] = useState(card?.until || '')
   const [busy, setBusy] = useState(false)
   const fileRef = useRef(null)
   const toast = useUI(s => s.toast)
+
+  // An empty choice takes the key off the card rather than storing an empty value. A visit limit
+  // from the first version of this sheet goes too: it is no longer asked or shown.
+  const membership = c => {
+    for (const [key, v] of Object.entries({ color, from, until })) {
+      if (v) c[key] = v
+      else delete c[key]
+    }
+    delete c.visits
+    return c
+  }
 
   const commit = () => {
     const trimmed = value.trim()
@@ -181,13 +239,14 @@ function CardSheet({ close, card }) {
         c.label = label.trim() || t('Gym card')
         c.value = trimmed
         c.fmt = fmt
+        membership(c)
       })
       toast(t('Card updated'))
     } else {
       update(s => {
         if (!Array.isArray(s.gymCards)) s.gymCards = []
         const id = uid()
-        s.gymCards.push({ id, label: label.trim() || t('Gym card'), value: trimmed, fmt })
+        s.gymCards.push(membership({ id, label: label.trim() || t('Gym card'), value: trimmed, fmt }))
         s.lastGymCardId = id
       })
       toast(t('Card added'))
@@ -243,7 +302,7 @@ function CardSheet({ close, card }) {
     <h3>{editing ? t('Edit card') : t('Add a card')}</h3>
     <div className="muted small" style={{ marginBottom: 14 }}>{t('Scan it with the camera or import a photo.')}</div>
 
-    <div className="row" style={{ gap: 8, marginBottom: 16 }}>
+    <div className="row ci-capture" style={{ gap: 8, marginBottom: 16 }}>
       <Button variant="tinted" icon="camera" onClick={doScan} disabled={busy}>{editing ? t('Re-scan') : t('Scan')}</Button>
       <Button variant="tinted" icon="image" onClick={() => fileRef.current?.click()} disabled={busy}>{t('Import photo')}</Button>
     </div>
@@ -251,7 +310,30 @@ function CardSheet({ close, card }) {
     <label className="sect-t">{t('Label')}</label>
     <TextField value={label} onChange={e => setLabel(e.target.value)} placeholder={t('e.g. FitZone downtown')} style={{ marginBottom: 16 }} />
 
-    {value.trim() && <div className="ci-qr-plate" style={{ alignSelf: 'center', marginBottom: 16 }}><QrCanvas value={value.trim()} fmt={fmt} size={150} /></div>}
+    {value.trim() && <div className="ci-qr-plate ci-preview"><QrCanvas value={value.trim()} fmt={fmt} size={150} /></div>}
+
+    <label className="sect-t">{t('Card colour')}</label>
+    <div className="swatches ci-colors">
+      <button className={'swatch ci-swatch-none' + (!color ? ' on' : '')} data-color="" aria-pressed={!color}
+        aria-label={t('No colour')} onClick={() => setColor('')} />
+      {CARD_COLORS.map(c => <button key={c} className={'swatch' + (color === c ? ' on' : '')} data-color={c}
+        aria-pressed={color === c} style={{ background: ACCENTS[c] }} aria-label={t(ACCENT_NAMES[c] || c)} onClick={() => setColor(c)} />)}
+    </div>
+
+    <div className="ci-dates">
+      <div>
+        <label className="sect-t">{t('Valid from')}</label>
+        <input className="field" type="date" name="from" value={from} max={until || undefined} onChange={e => setFrom(e.target.value)} />
+      </div>
+      <div>
+        <label className="sect-t">{t('Valid until')}</label>
+        <input className="field" type="date" name="until" value={until} min={from || undefined} onChange={e => setUntil(e.target.value)} />
+      </div>
+    </div>
+
+    <div className="small dim" style={{ margin: '-6px 2px 16px', lineHeight: 1.4 }}>
+      {t('Visits are counted by themselves: a day with a logged workout is one visit.')}
+    </div>
 
     <Button variant="primary" onClick={commit} disabled={busy || !value.trim()}>{editing ? t('Save card') : t('Save card')}</Button>
 
