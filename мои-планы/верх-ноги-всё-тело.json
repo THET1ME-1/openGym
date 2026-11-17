@@ -1,0 +1,57 @@
+{
+  "opengym_plan": 1,
+  "exported": "2026-11-17",
+  "name": "Верх, ноги, всё тело",
+  "unit": "kg",
+  "week": {
+    "1": ["upper"],
+    "3": ["legs"],
+    "5": ["full"]
+  },
+  "routines": [
+    {
+      "id": "upper",
+      "name": "День 1. Верх",
+      "emoji": "barbell",
+      "ex": [
+        { "id": "0757", "sets": 4, "reps": 8, "repsMin": 6, "prog": "double" },
+        { "id": "2291", "sets": 4, "reps": 10, "repsMin": 6, "prog": "double" },
+        { "id": "0576", "sets": 3, "reps": 10, "repsMin": 8, "prog": "double", "subs": ["0289"], "note": "В Хаммере или гантели лёжа" },
+        { "id": "0861", "sets": 3, "reps": 10, "repsMin": 8, "prog": "double" },
+        { "id": "0178", "sets": 3, "reps": 15, "repsMin": 12, "prog": "double" },
+        { "id": "0200", "sets": 2, "reps": 12, "repsMin": 10, "prog": "double", "intensifier": { "type": "dropset", "count": 1, "pct": 20 } },
+        { "id": "0868", "sets": 2, "reps": 12, "repsMin": 10, "prog": "double" }
+      ]
+    },
+    {
+      "id": "legs",
+      "name": "День 2. Ноги",
+      "emoji": "legs",
+      "ex": [
+        { "id": "0743", "sets": 4, "reps": 12, "repsMin": 8, "prog": "double" },
+        { "id": "0085", "sets": 3, "reps": 10, "repsMin": 8, "prog": "double", "subs": ["1459"] },
+        { "id": "0739", "sets": 3, "reps": 12, "repsMin": 10, "prog": "double" },
+        { "id": "0586", "sets": 3, "reps": 12, "repsMin": 10, "prog": "double" },
+        { "id": "0585", "sets": 2, "reps": 15, "repsMin": 12, "prog": "double", "intensifier": { "type": "dropset", "count": 1, "pct": 20 } },
+        { "id": "1383", "sets": 4, "reps": 15, "repsMin": 12, "prog": "double" }
+      ]
+    },
+    {
+      "id": "full",
+      "name": "День 3. Всё тело",
+      "emoji": "dumbbell",
+      "ex": [
+        { "id": "0739", "sets": 3, "reps": 12, "repsMin": 10, "prog": "double" },
+        { "id": "0599", "sets": 2, "reps": 15, "repsMin": 12, "prog": "double" },
+        { "id": "0603", "sets": 3, "reps": 10, "repsMin": 8, "prog": "double" },
+        { "id": "0293", "sets": 3, "reps": 10, "repsMin": 8, "prog": "double", "subs": ["0606"], "note": "Гантель в наклоне или Т-гриф" },
+        { "id": "1030", "sets": 3, "reps": 12, "repsMin": 10, "prog": "double", "intensifier": { "type": "dropset", "count": 1, "pct": 20 } },
+        { "id": "0334", "sets": 3, "reps": 15, "repsMin": 12, "prog": "double", "sg": "shoulders", "sgName": "Плечи" },
+        { "id": "0602", "sets": 3, "reps": 15, "repsMin": 12, "prog": "double", "sg": "shoulders", "sgName": "Плечи" },
+        { "id": "0060", "sets": 3, "reps": 12, "repsMin": 10, "prog": "double", "subs": ["0194"], "note": "Французский жим или разгибание над головой" },
+        { "id": "0313", "sets": 3, "reps": 12, "repsMin": 10, "prog": "double", "intensifier": { "type": "dropset", "count": 1, "pct": 20 } }
+      ]
+    }
+  ],
+  "customEx": []
+}
